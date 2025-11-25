@@ -1,68 +1,76 @@
 name: Android Build
 
 on:
-    workflow_dispatch:
-    # push:
-    #     branches:
-    #         - 'main'
+  workflow_dispatch:
+
+# 🟢 核心修改 1：显式声明写权限，配合系统 Token 使用
+permissions:
+  contents: write
 
 jobs:
-    build:
-        name: Build APK
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v4
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-            - name: Set up JDK 17
-              uses: actions/setup-java@v3
-              with:
-                  distribution: 'temurin'
-                  java-version: '17'
-                  cache: gradle
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
 
-            - name: Set up Android SDK
-              uses: android-actions/setup-android@v3
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-            - uses: pnpm/action-setup@v3
-              with:
-                  version: latest
+      - uses: pnpm/action-setup@v3
+        with:
+          version: latest
 
-            - name: Sync node version and setup cache
-              uses: actions/setup-node@v4
-              with:
-                  node-version: 20
-                  cache: pnpm
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v4
+        with:
+          with:
+          node-version: 20
+          cache: pnpm
 
-            - name: Init Project Config
-              run: |
-                  pnpm install
-                  pnpm pp:worker
-                  echo "NAME=CervixDetectAI" >> $GITHUB_ENV
-                  echo "VERSION=2.1.3" >> $GITHUB_ENV
-                  echo "PUBBODY=Auto build release" >> $GITHUB_ENV
+      - name: Init Project Config
+        run: |
+          pnpm install
+          pnpm pp:worker
+          # 变量注入部分保持不变，这很好
+          echo "NAME=CervixDetectAI" >> $GITHUB_ENV
+          echo "VERSION=2.1.3" >> $GITHUB_ENV
+          echo "PUBBODY=Auto build release" >> $GITHUB_ENV
 
-            - name: Grant Execute Permission for Gradle
-              run: chmod +x ./gradlew
+      - name: Grant Execute Permission for Gradle
+        run: chmod +x ./gradlew
 
-            - name: Build Debug APK
-              run: ./gradlew assembleDebug
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
 
-            - name: Rename APK file
-              run: |
-                  cd app/build/outputs/apk/debug/
-                  mv app-debug.apk ${{ env.NAME }}-v${{ env.VERSION }}.apk
+      - name: Rename APK file
+        run: |
+          cd app/build/outputs/apk/debug/
+          # 确保文件名里带有版本号
+          mv app-debug.apk ${{ env.NAME }}-v${{ env.VERSION }}.apk
 
-            - name: Create GitHub Release
-              uses: softprops/action-gh-release@v2
-              with:
-                  files: app/build/outputs/apk/debug/*.apk
-                  tag_name: '${{ env.NAME }}'
-                  name: '${{ env.NAME }} v${{ env.VERSION }}'
-                  body: '${{ env.PUBBODY }}'
-                  draft: false
-              env:
-                  GITHUB_TOKEN: ${{ secrets.PakePlus }}
-                  NAME: ${{ env.NAME }}
-                  VERSION: ${{ env.VERSION }}
-                  PUBBODY: ${{ env.PUBBODY }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2 # 推荐用 v2
+        with:
+          files: app/build/outputs/apk/debug/*.apk
+          # 🟢 核心修改 2：Tag 必须包含版本号，否则无法发新版
+          tag_name: 'v${{ env.VERSION }}' 
+          name: '${{ env.NAME }} v${{ env.VERSION }}'
+          body: '${{ env.PUBBODY }}'
+          draft: false
+        env:
+          # 🟢 核心修改 3：改回 secrets.GITHUB_TOKEN
+          # 因为我们在文件头声明了 permissions: write，这个系统 Token 现在拥有完美权限
+          # 而且它不会出现 "author_id" 归属人错误的 Bug
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NAME: ${{ env.NAME }}
+          VERSION: ${{ env.VERSION }}
+          PUBBODY: ${{ env.PUBBODY }}
