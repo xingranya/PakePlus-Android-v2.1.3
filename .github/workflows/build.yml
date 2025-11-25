@@ -38,6 +38,9 @@ jobs:
               run: |
                   pnpm install
                   pnpm pp:worker
+                  echo "NAME=CervixDetectAI" >> $GITHUB_ENV
+                  echo "VERSION=2.1.3" >> $GITHUB_ENV
+                  echo "PUBBODY=Auto build release" >> $GITHUB_ENV
 
             - name: Grant Execute Permission for Gradle
               run: chmod +x ./gradlew
