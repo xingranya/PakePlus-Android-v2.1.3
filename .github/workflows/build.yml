@@ -59,7 +59,7 @@ jobs:
                   body: '${{ env.PUBBODY }}'
                   draft: false
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GITHUB_TOKEN: ${{ secrets.PakePlus }}
                   NAME: ${{ env.NAME }}
                   VERSION: ${{ env.VERSION }}
                   PUBBODY: ${{ env.PUBBODY }}
